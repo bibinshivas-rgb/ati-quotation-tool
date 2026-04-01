@@ -240,29 +240,20 @@ input[type=checkbox]{accent-color:var(--yellow);width:12px;height:12px;cursor:po
         <option value="Nagpur">Nagpur</option>
         <option value="Others">Others</option>
       </select></div>
-    <div class="two">
-      <div class="field"><label>Complexity</label>
-        <select id="complexity" onchange="updateAll()">
-          <option value="1.0">Low ×1.0</option>
-          <option value="1.2" selected>Medium ×1.2</option>
-          <option value="1.5">High ×1.5</option>
-        </select></div>
-      <div class="field"><label>MES/SAP Integration?</label>
-        <select id="integration" onchange="updateAll()">
-          <option value="N">No</option>
-          <option value="Y">Yes</option>
-        </select></div>
-    </div>
-    <div class="field"><label>No. of Engineers on-site</label>
-      <input type="number" id="engineers" value="1" min="1" oninput="updateAll()"></div>
+    <div class="field"><label>MES/SAP Integration?</label>
+      <select id="integration" onchange="updateAll()">
+        <option value="N">No</option>
+        <option value="Y">Yes</option>
+      </select></div>
     <div class="calc-badge">
       <span>Bots:</span>
       <span class="val" id="calcBots">—</span>
       <span style="color:var(--g4)">·</span>
       <span>Days:</span>
       <span class="val" id="calcDays">—</span>
-      <span style="color:var(--g4)">×cplx=</span>
-      <span class="val" id="calcEffDays">—</span>
+      <span style="color:var(--g4)">·</span>
+      <span>Eng:</span>
+      <span class="val" id="calcEngineers">—</span>
     </div>
     <div class="two" style="margin-top:8px;">
       <div class="field" id="amcYearsField"><label id="amcYearsLabel">AMC Years (beyond warranty)</label>
@@ -874,16 +865,27 @@ function getAccListPrice(rid) {
 }
 
 // ══════════════════════════════════════════════════════
-// IMPL DAYS AUTO-CALC
+// IMPL DAYS AUTO-CALC — no complexity multiplier (matches Excel)
 // ══════════════════════════════════════════════════════
 function getImplDays(totalBots) {
   const intg=document.getElementById('integration').value;
-  const cplx=parseFloat(document.getElementById('complexity').value)||1.0;
   // Discrete lookup: find first threshold >= totalBots
   const row=MASTER.implDays.find(d=>d.bots>=totalBots && d.int===intg)
          || MASTER.implDays.filter(d=>d.int===intg).slice(-1)[0];
   const base=row?row.days:14;
-  return {base, eff:Math.round(base*cplx*10)/10};
+  return {base, eff:base};  // eff === base (no multiplier)
+}
+
+// ══════════════════════════════════════════════════════
+// ENGINEERS AUTO-CALC — Excel: =LOOKUP(bots,{1,3,5,12,999},{1,1.5,2,3})
+// ══════════════════════════════════════════════════════
+function getEngineers(totalBots) {
+  const bps=[1,3,5,12,999], vals=[1,1.5,2,3,3];
+  let result=vals[0];
+  for(let i=0;i<bps.length;i++){
+    if(totalBots>=bps[i]) result=vals[i]; else break;
+  }
+  return result;
 }
 
 // Avg days/visit: LOOKUP(bots, {1,4,10,999}, {1,2,3,3}) — discrete
@@ -898,7 +900,7 @@ function avgVisitDays(bots) {
 // ══════════════════════════════════════════════════════
 function computeCOGS(totalBots) {
   const cluster   = document.getElementById('cluster').value;
-  const engineers = parseFloat(document.getElementById('engineers').value)||1;
+  const engineers = getEngineers(totalBots);   // auto: LOOKUP(bots,{1,3,5,12,999},{1,1.5,2,3})
   const amcYears  = parseInt(document.getElementById('amcYears').value)||0;
   const cl        = MASTER.clusters[cluster] || MASTER.clusters['Others'];
   const {eff:D}   = getImplDays(totalBots);
@@ -1026,11 +1028,12 @@ function updateAll() {
   });
   totalBots=Math.round(totalBots);
 
-  // Impl days + bot count display
-  const {base,eff} = getImplDays(totalBots);
-  document.getElementById('calcBots').textContent    = totalBots>0?`${totalBots}`:'—';
-  document.getElementById('calcDays').textContent    = totalBots>0?`${base}d`:'—';
-  document.getElementById('calcEffDays').textContent = totalBots>0?`${eff}d`:'—';
+  // Impl days + bot count + engineers display
+  const {base} = getImplDays(totalBots);
+  const engAuto = totalBots>0 ? getEngineers(totalBots) : null;
+  document.getElementById('calcBots').textContent      = totalBots>0?`${totalBots}`:'—';
+  document.getElementById('calcDays').textContent      = totalBots>0?`${base}d`:'—';
+  document.getElementById('calcEngineers').textContent = engAuto!==null?`${engAuto}`:'—';
 
   // Section totals (last arg = sub-mode prefix for non-robot rows)
   const rRev=secTotal('robotRows','rq-','rp-','rt-',null,'rdisc-',getRobotListPrice,true,null);
@@ -1155,7 +1158,7 @@ function renderCMEmpty(){
   document.getElementById('amcRefBox').style.display='none';
   document.getElementById('calcBots').textContent='—';
   document.getElementById('calcDays').textContent='—';
-  document.getElementById('calcEffDays').textContent='—';
+  document.getElementById('calcEngineers').textContent='—';
   // Reset traffic lights
   ['tlRed','tlAmber','tlGreen'].forEach(id=>document.getElementById(id).classList.remove('on'));
   document.getElementById('tlVerdict').textContent='—';
@@ -1217,8 +1220,8 @@ Ref: ${document.getElementById('refNum').textContent}
 Customer: ${cust} | Contact: ${document.getElementById('contactPerson').value||'—'}
 Rep: ${document.getElementById('salesRep').value||'—'} (${document.getElementById('repTitle').value||'—'})
 Deal Type: ${document.getElementById('dealType').value} | Cluster: ${document.getElementById('cluster').value}
-Integration: ${document.getElementById('integration').value} | Complexity: ${document.getElementById('complexity').value}
-Engineers: ${document.getElementById('engineers').value} | Impl Days: ${document.getElementById('calcEffDays').textContent}
+Integration: ${document.getElementById('integration').value}
+Engineers (auto): ${document.getElementById('calcEngineers').textContent} | Impl Days: ${document.getElementById('calcDays').textContent}
 AMC: ${document.getElementById('amcYears').value} yr
 ${lines}
 P&F: ${document.getElementById('pfTotal').textContent}
