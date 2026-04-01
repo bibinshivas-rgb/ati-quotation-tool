@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ati Motors — India CM Quotation Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:#0a0a0a;--white:#f5f3ef;--yellow:#f5c800;--ydim:#c9a400;
+  --g1:#141414;--g2:#1e1e1e;--g3:#2a2a2a;--g4:#555;--g5:#888;
+  --green:#27ae60;--red:#c0392b;--orange:#e67e22;--blue:#2980b9;
+  --border:1px solid #2a2a2a;--r:3px;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--black);color:var(--white);font-family:var(--sans);font-size:13px;min-height:100vh;}
+
+/* ── HEADER ── */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 26px;border-bottom:var(--border);background:var(--g1);position:sticky;top:0;z-index:300;}
+.hdr-logo{display:flex;align-items:center;gap:10px;}
+.logo-box{width:30px;height:30px;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--black);border-radius:2px;}
+.logo-name{font-weight:700;font-size:13px;}
+.logo-sub{font-size:9px;color:var(--g4);font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;}
+.hdr-mid{font-size:12px;font-weight:700;color:var(--g5);letter-spacing:.03em;}
+.hdr-right{display:flex;gap:8px;align-items:center;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--g4);transition:background .3s;}
+.status-dot.ok{background:var(--green);}
+.status-dot.err{background:var(--red);}
+.status-dot.loading{background:var(--orange);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.status-txt{font-family:var(--mono);font-size:10px;color:var(--g5);}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:288px 1fr;min-height:calc(100vh - 55px);}
+
+/* ── SIDEBAR ── */
+.sidebar{border-right:var(--border);background:var(--g1);overflow-y:auto;display:flex;flex-direction:column;}
+.sb-sec{padding:15px 15px;border-bottom:var(--border);}
+.sb-lbl{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--g4);margin-bottom:10px;}
+.sb-lbl .accent{color:var(--yellow);font-size:8px;}
+.field{margin-bottom:8px;}.field:last-child{margin-bottom:0;}
+.field label{display:block;font-size:10px;font-family:var(--mono);color:var(--g5);margin-bottom:3px;}
+.field input,.field select{width:100%;background:var(--g2);border:var(--border);border-radius:var(--r);color:var(--white);font-family:var(--mono);font-size:11px;padding:6px 8px;outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus{border-color:var(--yellow);}
+.field select option{background:var(--g2);}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.calc-badge{display:flex;align-items:center;gap:6px;background:var(--g2);border:var(--border);border-radius:var(--r);padding:6px 8px;font-family:var(--mono);font-size:11px;color:var(--g5);margin-top:6px;}
+.calc-badge .val{color:var(--yellow);font-weight:500;}
+
+/* ── CM PANEL ── */
+.cm-panel{background:var(--g2);border-radius:var(--r);padding:13px;}
+.cm-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:5px;}
+.cm-pct{font-size:34px;font-weight:800;font-family:var(--mono);line-height:1;color:var(--g4);transition:color .3s;}
+.cm-badge{font-size:9px;font-weight:700;font-family:var(--mono);padding:3px 7px;border-radius:2px;letter-spacing:.08em;text-transform:uppercase;}
+.vok{background:rgba(39,174,96,.15);color:var(--green);}
+.vwarn{background:rgba(230,126,34,.15);color:var(--orange);}
+.vbad{background:rgba(192,57,43,.15);color:var(--red);}
+.vnil{background:var(--g3);color:var(--g4);}
+.cm-track{height:4px;background:var(--g3);border-radius:3px;overflow:hidden;margin-bottom:7px;}
+.cm-fill{height:100%;border-radius:3px;transition:width .5s,background .3s;width:0%;background:var(--g3);}
+.thr-hint{font-family:var(--mono);font-size:10px;color:var(--g4);margin-bottom:8px;}
+.thr-hint span{color:var(--g5);}
+
+/* waterfall */
+.wf{font-family:var(--mono);font-size:10px;}
+.wfr{display:flex;justify-content:space-between;padding:3px 0;color:var(--g5);border-bottom:1px solid var(--g3);}
+.wfr:last-child{border:none;}
+.wfr.wft{color:var(--white);font-weight:600;border-top:1px solid var(--g3);padding-top:5px;margin-top:2px;}
+.wfv{color:var(--white);}.wfv.neg{color:#e88;}.wfv.cmc{transition:color .3s;}
+.wf-flags{margin-top:7px;}
+.flag{font-family:var(--mono);font-size:9px;color:var(--orange);padding:2px 0;line-height:1.4;}
+.flag::before{content:'⚠ ';}
+
+/* ── TRAFFIC LIGHT VERDICT ── */
+.tl-block{border-radius:var(--r);padding:14px 14px 12px;margin-bottom:10px;transition:background .3s,border-color .3s;border:1px solid var(--g3);background:var(--g2);}
+.tl-lights{display:flex;gap:12px;margin-bottom:10px;align-items:center;}
+.tl-dot{width:18px;height:18px;border-radius:50%;transition:background .3s,box-shadow .3s;flex-shrink:0;}
+.tl-dot.tl-red   {background:var(--g3);}
+.tl-dot.tl-amber {background:var(--g3);}
+.tl-dot.tl-green {background:var(--g3);}
+.tl-dot.tl-red.on   {background:#e74c3c;box-shadow:0 0 10px rgba(231,76,60,.7);}
+.tl-dot.tl-amber.on {background:#f39c12;box-shadow:0 0 10px rgba(243,156,18,.7);}
+.tl-dot.tl-green.on {background:#27ae60;box-shadow:0 0 10px rgba(39,174,96,.7);}
+.tl-verdict{font-size:13px;font-weight:800;font-family:var(--sans);letter-spacing:.04em;transition:color .3s;}
+.tl-sub{font-size:10px;font-family:var(--mono);color:var(--g5);margin-top:4px;line-height:1.5;}
+.tl-sub .gap{color:var(--orange);font-weight:500;}
+
+/* ── TRAFFIC LIGHT ── */
+/* AMC reference */
+.amc-ref{background:rgba(41,128,185,.08);border:1px solid rgba(41,128,185,.2);border-radius:var(--r);padding:10px 12px;margin-top:8px;}
+.amc-ref-lbl{font-size:9px;font-family:var(--mono);color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;}
+.amc-ref-val{font-size:14px;font-weight:700;font-family:var(--mono);color:var(--white);}
+.amc-ref-sub{font-size:10px;font-family:var(--mono);color:var(--g5);margin-top:2px;}
+
+/* ── MAIN ── */
+.main{padding:20px 24px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;}
+.ref-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--g1);border:var(--border);border-radius:var(--r);font-family:var(--mono);font-size:10px;color:var(--g4);}
+.ref-bar .rn{color:var(--yellow);font-weight:500;}
+.ref-bar .sep{color:var(--g3);}
+
+/* tables */
+.tblk-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.tblk-title{font-size:11px;font-weight:700;letter-spacing:.04em;}
+.tblk-tag{font-size:9px;font-family:var(--mono);color:var(--g4);background:var(--g2);padding:2px 6px;border-radius:2px;text-transform:uppercase;letter-spacing:.1em;}
+table{width:100%;border-collapse:collapse;}
+thead th{font-size:9px;font-family:var(--mono);color:var(--g4);letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:6px 7px;background:var(--g2);border-bottom:1px solid var(--g3);}
+thead th.r{text-align:right;}
+tbody tr{border-bottom:1px solid #191919;transition:background .1s;}
+tbody tr:hover{background:rgba(255,255,255,.012);}
+tbody td{padding:4px 5px;vertical-align:middle;}
+.ci{background:transparent;border:none;outline:none;color:var(--white);font-family:var(--mono);font-size:11px;width:100%;padding:3px 4px;border-radius:2px;transition:background .1s;}
+.ci:focus{background:var(--g2);}
+.ci option{background:var(--g1);}
+.td-r{text-align:right;font-family:var(--mono);font-size:11px;color:var(--yellow);padding-right:6px;}
+.td-r.warn{color:var(--red);}
+.td-hsn{font-family:var(--mono);font-size:9px;color:var(--g4);}
+.td-gst{font-family:var(--mono);font-size:9px;color:var(--g5);text-align:center;}
+.td-disc{font-family:var(--mono);font-size:9px;text-align:center;}
+.td-del{text-align:center;width:24px;}
+.btn-del{background:none;border:none;color:var(--g3);cursor:pointer;font-size:13px;padding:1px 4px;border-radius:2px;transition:color .1s,background .1s;}
+.btn-del:hover{color:var(--red);background:rgba(192,57,43,.1);}
+.add-btn{display:flex;align-items:center;gap:6px;width:100%;padding:7px 9px;background:none;border:1px dashed var(--g3);border-top:none;color:var(--g4);font-family:var(--mono);font-size:9px;cursor:pointer;text-align:left;transition:color .15s,border-color .15s;}
+.add-btn:hover{color:var(--yellow);border-color:var(--ydim);}
+.sub-row{display:flex;justify-content:flex-end;align-items:center;gap:16px;padding:6px 6px;border-top:1px solid var(--g2);font-family:var(--mono);font-size:10px;}
+.sub-row span{color:var(--g4);}.sub-row strong{color:var(--white);min-width:95px;text-align:right;}
+
+/* p&f */
+.pf-row{display:flex;align-items:center;gap:10px;padding:8px 6px;border-top:var(--border);font-family:var(--mono);font-size:10px;}
+.pf-row label{flex:1;color:var(--g4);}
+.pf-row input{background:var(--g2);border:var(--border);border-radius:var(--r);color:var(--white);font-family:var(--mono);font-size:11px;padding:5px 7px;width:120px;outline:none;}
+.pf-row input:focus{border-color:var(--yellow);}
+.pf-note{color:var(--g5);font-size:9px;}.pf-total{color:var(--yellow);min-width:95px;text-align:right;}
+
+/* grand total */
+.gt-block{background:var(--g1);border:var(--border);border-radius:var(--r);padding:15px 18px;}
+.gt-lbl{font-size:9px;font-family:var(--mono);color:var(--g4);text-transform:uppercase;letter-spacing:.15em;margin-bottom:9px;}
+.gt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;}
+.gt-cell{padding:0 12px;}.gt-cell:first-child{padding-left:0;}
+.gt-cell:nth-child(n+2){border-left:1px solid var(--g2);}
+.gt-cl{font-size:9px;font-family:var(--mono);color:var(--g4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
+.gt-cv{font-size:18px;font-weight:800;font-family:var(--mono);color:var(--yellow);}
+.gt-cv.gst{color:var(--g5);font-size:15px;}.gt-cv.inc{color:var(--white);font-size:20px;}
+
+/* notes */
+.note-box{background:rgba(245,200,0,.04);border:1px solid rgba(245,200,0,.12);border-radius:var(--r);padding:8px 12px;font-family:var(--mono);font-size:9px;color:var(--g5);line-height:1.6;}
+.note-box strong{color:var(--yellow);}
+.tw{background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.2);border-radius:var(--r);padding:7px 11px;font-family:var(--mono);font-size:9px;color:#e88;line-height:1.5;}
+
+/* buttons */
+.btn{padding:7px 14px;border-radius:var(--r);font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.05em;cursor:pointer;border:none;transition:opacity .15s;}
+.btn:hover{opacity:.82;}
+.btn-primary{background:var(--yellow);color:var(--black);}
+.btn-ghost{background:var(--g2);color:var(--white);border:var(--border);}
+.btn-blue{background:rgba(41,128,185,.2);color:#5dade2;border:1px solid rgba(41,128,185,.3);}
+
+input[type=checkbox]{accent-color:var(--yellow);width:12px;height:12px;cursor:pointer;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--g1);}
+::-webkit-scrollbar-thumb{background:var(--g3);border-radius:3px;}
+
+/* ── DISABLED FIELD (RaaS grayed AMC) ── */
+.field-disabled label{color:var(--g3)!important;}
+.field-disabled select,.field-disabled input{color:var(--g3)!important;cursor:not-allowed;pointer-events:none;border-color:var(--g2)!important;}
+
+/* ── SUB TOGGLE ── */
+.sub-toggle{display:flex;align-items:center;justify-content:center;gap:0;}
+.sub-btn{font-family:var(--mono);font-size:8px;padding:2px 5px;border:1px solid var(--g3);background:var(--g2);color:var(--g4);cursor:pointer;line-height:1.4;transition:background .1s,color .1s;}
+.sub-btn:first-child{border-radius:2px 0 0 2px;border-right:none;}
+.sub-btn:last-child{border-radius:0 2px 2px 0;}
+.sub-btn.active-sub{background:rgba(41,128,185,.25);color:#5dade2;border-color:rgba(41,128,185,.4);}
+.sub-btn.active-ot{background:rgba(245,200,0,.15);color:var(--yellow);border-color:var(--ydim);}
+.sub-col{display:none;}
+.raas-mode .sub-col{display:table-cell;}
+.raas-mode .sub-col-hd{display:table-cell;}
+
+
+</style>
+</head>
+<body>
+
+<!-- Status is shown in header only — no blocking overlay -->
+
+<div class="hdr">
+  <div class="hdr-logo">
+    <div class="logo-box">A</div>
+    <div><div class="logo-name">Ati Motors</div><div class="logo-sub">India CM Calculator</div></div>
+  </div>
+  <div class="hdr-mid">Deal Quotation Builder · India · Internal</div>
+  <div class="hdr-right">
+    <div class="status-dot loading" id="statusDot"></div>
+    <div class="status-txt" id="statusTxt">Connecting…</div>
+    <button class="btn btn-ghost" onclick="retrySheets()" id="retryBtn" style="display:none;font-size:10px;padding:5px 10px;">↻ Retry</button>
+    <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+    <button class="btn btn-primary" onclick="exportSummary()">↓ Export</button>
+  </div>
+</div>
+
+<div class="layout" id="mainLayout">
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<div class="sidebar">
+
+  <!-- Deal Info -->
+  <div class="sb-sec">
+    <div class="sb-lbl">Deal Identity</div>
+    <div class="field"><label>Customer Name</label><input type="text" id="customerName" placeholder="e.g. Daimler India" oninput="updateRef()"></div>
+    <div class="field"><label>Contact Person</label><input type="text" id="contactPerson" placeholder="e.g. Ms. Preethi J"></div>
+    <div class="two">
+      <div class="field"><label>Deal Type</label>
+        <select id="dealType" onchange="updateAll()">
+          <option value="capex">CapEx Outright</option>
+          <option value="raas">RaaS</option>
+        </select></div>
+      <div class="field"><label>Account Type</label>
+        <select id="accountType">
+          <option value="strategic">Strategic</option>
+          <option value="growth">Growth</option>
+          <option value="commercial">Commercial</option>
+        </select></div>
+    </div>
+    <div class="two">
+      <div class="field"><label>Sales Rep</label><input type="text" id="salesRep" placeholder="Name"></div>
+      <div class="field"><label>Title</label><input type="text" id="repTitle" placeholder="AGM – Sales"></div>
+    </div>
+  </div>
+
+  <!-- Implementation Inputs -->
+  <div class="sb-sec">
+    <div class="sb-lbl">Site & Implementation <span class="accent">→ COGS</span></div>
+    <div class="field"><label>Cluster</label>
+      <select id="cluster" onchange="updateAll()">
+        <option value="Bangalore">Bangalore</option>
+        <option value="Hosur">Hosur</option>
+        <option value="Chennai">Chennai</option>
+        <option value="Pune - Maharashtra">Pune / Maharashtra</option>
+        <option value="NCR">NCR</option>
+        <option value="Gujarat">Gujarat</option>
+        <option value="Dahej">Dahej</option>
+        <option value="Nagpur">Nagpur</option>
+        <option value="Others">Others</option>
+      </select></div>
+    <div class="two">
+      <div class="field"><label>Complexity</label>
+        <select id="complexity" onchange="updateAll()">
+          <option value="1.0">Low ×1.0</option>
+          <option value="1.2" selected>Medium ×1.2</option>
+          <option value="1.5">High ×1.5</option>
+        </select></div>
+      <div class="field"><label>MES/SAP Integration?</label>
+        <select id="integration" onchange="updateAll()">
+          <option value="N">No</option>
+          <option value="Y">Yes</option>
+        </select></div>
+    </div>
+    <div class="field"><label>No. of Engineers on-site</label>
+      <input type="number" id="engineers" value="1" min="1" oninput="updateAll()"></div>
+    <div class="calc-badge">
+      <span>Bots:</span>
+      <span class="val" id="calcBots">—</span>
+      <span style="color:var(--g4)">·</span>
+      <span>Days:</span>
+      <span class="val" id="calcDays">—</span>
+      <span style="color:var(--g4)">×cplx=</span>
+      <span class="val" id="calcEffDays">—</span>
+    </div>
+    <div class="two" style="margin-top:8px;">
+      <div class="field" id="amcYearsField"><label id="amcYearsLabel">AMC Years (beyond warranty)</label>
+        <select id="amcYears" onchange="updateAll()">
+          <option value="0">0 — warranty only</option>
+          <option value="1">1 year</option>
+          <option value="2">2 years</option>
+          <option value="3">3 years</option>
+        </select></div>
+      <div class="field" id="raasMonthsField" style="display:none"><label>Contract (months)</label>
+        <input type="number" id="contractMonths" value="12" min="1" oninput="updateAll()"></div>
+    </div>
+  </div>
+
+  <!-- CM Panel -->
+  <div class="sb-sec">
+    <div class="sb-lbl">Contribution Margin <span class="accent">exact COGS</span></div>
+
+    <!-- Traffic Light Verdict -->
+    <div class="tl-block" id="tlBlock">
+      <div class="tl-lights">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:#0d0d0d;border-radius:8px;padding:8px 7px;border:1px solid #1e1e1e;flex-shrink:0;">
+          <div class="tl-dot tl-red"   id="tlRed"></div>
+          <div class="tl-dot tl-amber" id="tlAmber"></div>
+          <div class="tl-dot tl-green" id="tlGreen"></div>
+        </div>
+        <div style="flex:1">
+          <div class="tl-verdict" id="tlVerdict" style="color:var(--g4)">—</div>
+          <div class="tl-sub" id="tlSub">Enter deal details</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cm-panel">
+      <div class="cm-top">
+        <div class="cm-pct" id="cmPct">—</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div class="thr-hint" id="thrHint" style="text-align:right"></div>
+        </div>
+      </div>
+      <div class="cm-track"><div class="cm-fill" id="cmFill"></div></div>
+      <div class="wf">
+        <div class="wfr"><span>Revenue (ex-GST)</span><span class="wfv" id="wRev">—</span></div>
+        <div class="wfr"><span>Hardware COGS</span><span class="wfv neg" id="wHw">—</span></div>
+        <div class="wfr"><span>Impl. COGS</span><span class="wfv neg" id="wImpl">—</span></div>
+        <div class="wfr"><span>Warranty COGS</span><span class="wfv neg" id="wWarr">—</span></div>
+        <div class="wfr"><span>AMC COGS</span><span class="wfv neg" id="wAmc">—</span></div>
+        <div class="wfr"><span>FOC Cost</span><span class="wfv neg" id="wFoc">—</span></div>
+        <div class="wfr wft"><span>CM</span><span class="wfv cmc" id="wCm">—</span></div>
+      </div>
+      <div class="wf-flags" id="wFlags"></div>
+    </div>
+
+    <!-- AMC Reference -->
+    <div class="amc-ref" id="amcRefBox" style="display:none">
+      <div class="amc-ref-lbl">Suggested AMC Price (reference)</div>
+      <div class="amc-ref-val" id="amcRefTotal">—</div>
+      <div class="amc-ref-sub" id="amcRefSub">—</div>
+    </div>
+  </div>
+
+</div>
+<!-- ═══════════ END SIDEBAR ═══════════ -->
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+
+  <div class="ref-bar">
+    <span>Ref:</span><span class="rn" id="refNum">AMIDC/—</span>
+    <span class="sep">·</span><span id="refDate"></span>
+    <span class="sep">·</span><span id="refCust" style="color:var(--white)">—</span>
+    <span class="sep">·</span><span style="color:var(--g5)">India</span>
+  </div>
+
+  <!-- A: Robots -->
+  <div>
+    <div class="tblk-hd"><span class="tblk-title">A — Robots</span><span class="tblk-tag">Hardware</span></div>
+    <table><thead><tr>
+      <th style="width:22%">Notes</th><th style="width:18%">SKU</th>
+      <th style="width:6%">Qty</th><th style="width:13%" id="robotPriceHeader">Unit Price (₹)</th>
+      <th style="width:5%" class="r">Disc%</th>
+      <th style="width:13%" class="r" id="robotTotalHeader">Line Total</th>
+      <th style="width:9%">HSN</th><th style="width:5%" style="text-align:center">GST</th><th style="width:3%"></th>
+    </tr></thead><tbody id="robotRows"></tbody></table>
+    <button class="add-btn" onclick="addRobotRow()">＋ Add Robot</button>
+    <div class="sub-row"><span>Subtotal</span><strong id="robotSub">₹0</strong></div>
+    <div id="raasNote" style="display:none;padding:5px 8px;font-family:var(--mono);font-size:9px;color:var(--g5);border-top:1px solid var(--g2);">
+      LTV = MRC × qty × <span id="raasNoteMonths">12</span> months
+    </div>
+  </div>
+
+  <!-- B: Accessories -->
+  <div>
+    <div class="tblk-hd"><span class="tblk-title">B — Accessories & Options</span><span class="tblk-tag">Optional</span></div>
+    <table><thead><tr>
+      <th style="width:26%">Item</th><th style="width:6%">Qty</th>
+      <th style="width:13%">Unit Price (₹)</th>
+      <th style="width:5%" class="r">Disc%</th>
+      <th style="width:13%" class="r">Line Total</th>
+      <th style="width:9%">HSN</th><th style="width:5%" style="text-align:center">GST</th>
+      <th class="sub-col-hd" style="width:7%;text-align:center;display:none">Sub/OT</th>
+      <th style="width:5%" style="text-align:center">FOC</th><th style="width:3%"></th>
+    </tr></thead><tbody id="accRows"></tbody></table>
+    <button class="add-btn" onclick="addAccRow()">＋ Add Accessory</button>
+    <div class="sub-row"><span>Subtotal</span><strong id="accSub">₹0</strong></div>
+  </div>
+
+  <!-- C: Implementation -->
+  <div>
+    <div class="tblk-hd"><span class="tblk-title">C — Implementation & Services</span><span class="tblk-tag">Services</span></div>
+    <table><thead><tr>
+      <th style="width:32%">Description</th><th style="width:6%">Qty</th>
+      <th style="width:13%">Unit Price (₹)</th>
+      <th style="width:13%" class="r">Line Total</th>
+      <th style="width:9%">HSN</th><th style="width:5%" style="text-align:center">GST</th>
+      <th class="sub-col-hd" style="width:7%;text-align:center;display:none">Sub/OT</th>
+      <th style="width:3%"></th>
+    </tr></thead><tbody id="implRows"></tbody></table>
+    <button class="add-btn" onclick="addImplRow()">＋ Add Service Line</button>
+    <div class="sub-row"><span>Subtotal</span><strong id="implSub">₹0</strong></div>
+  </div>
+
+  <!-- D: Software -->
+  <div>
+    <div class="tblk-hd"><span class="tblk-title">D — Software Licenses</span><span class="tblk-tag">If Applicable</span></div>
+    <table><thead><tr>
+      <th style="width:32%">Description</th><th style="width:6%">Qty</th>
+      <th style="width:13%">Unit Price (₹)</th>
+      <th style="width:13%" class="r">Line Total</th>
+      <th style="width:9%">HSN</th><th style="width:5%" style="text-align:center">GST</th>
+      <th class="sub-col-hd" style="width:7%;text-align:center;display:none">Sub/OT</th>
+      <th style="width:3%"></th>
+    </tr></thead><tbody id="swRows"></tbody></table>
+    <button class="add-btn" onclick="addSwRow()">＋ Add Software</button>
+    <div class="sub-row"><span>Subtotal</span><strong id="swSub">₹0</strong></div>
+  </div>
+
+  <!-- E: AMC -->
+  <div>
+    <div class="tblk-hd"><span class="tblk-title">E — AMC / After-Sales</span><span class="tblk-tag">Optional</span></div>
+    <table><thead><tr>
+      <th style="width:32%">Description</th><th style="width:6%">Qty</th>
+      <th style="width:13%">Unit Price (₹)</th>
+      <th style="width:13%" class="r">Line Total</th>
+      <th style="width:9%">HSN</th><th style="width:5%" style="text-align:center">GST</th>
+      <th class="sub-col-hd" style="width:7%;text-align:center;display:none">Sub/OT</th>
+      <th style="width:3%"></th>
+    </tr></thead><tbody id="amcRows"></tbody></table>
+    <button class="add-btn" onclick="addAmcRow()">＋ Add AMC Line</button>
+    <div class="sub-row"><span>Subtotal</span><strong id="amcSub">₹0</strong></div>
+  </div>
+
+  <!-- P&F -->
+  <div class="pf-row">
+    <label>Packing & Forwarding</label>
+    <input type="number" id="pandF" placeholder="0" oninput="updateAll()">
+    <span class="pf-note">+18% GST</span>
+    <span class="pf-total" id="pfTotal">₹0</span>
+  </div>
+
+  <!-- Tablet warning -->
+  <div id="tabletWarn" class="tw" style="display:none">
+    ⚠ Sherpa Controlling Tablet: COGS ₹12,000 vs list ₹20,000 — sold at a loss. Drag included in CM.
+  </div>
+
+  <!-- Grand Total -->
+  <div class="gt-block">
+    <div class="gt-lbl">Grand Total</div>
+    <div class="gt-grid">
+      <div class="gt-cell"><div class="gt-cl">Ex-GST</div><div class="gt-cv" id="gtEx">₹0</div></div>
+      <div class="gt-cell"><div class="gt-cl">GST @18%</div><div class="gt-cv gst" id="gtGst">₹0</div></div>
+      <div class="gt-cell"><div class="gt-cl">Total Inc. GST</div><div class="gt-cv inc" id="gtInc">₹0</div></div>
+    </div>
+  </div>
+
+
+  <div>
+    <div class="sb-lbl" style="margin-bottom:5px">Internal Notes</div>
+    <textarea id="internalNotes" placeholder="Discount rationale, site conditions, special requirements…"
+      style="width:100%;background:var(--g1);border:var(--border);border-radius:var(--r);color:var(--white);font-family:var(--mono);font-size:11px;padding:9px;min-height:60px;outline:none;resize:vertical;"
+      onfocus="this.style.borderColor='var(--yellow)'" onblur="this.style.borderColor='#2a2a2a'"></textarea>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG — Google Sheets
+// ══════════════════════════════════════════════════════
+const SHEET_ID = '1wCra9VGkLvhEPf-h78JHcLIaNXu-47Nf6iBN_3g-PQk';
+const API_KEY  = 'AIzaSyBetpDTY53YZ2TktwcKEIS7mMuPaiySaHU';
+
+// ══════════════════════════════════════════════════════
+// FALLBACK MASTERS (used if Sheets API unavailable)
+// Sourced from: Pricebook tab (India Outright) + Lookup tab BOM
+// ══════════════════════════════════════════════════════
+let MASTER = {
+  skus: [
+    {name:'Sherpa XT',           bom:1460838,  list:2300000, raas:100000, hsn:'84287000'},
+    {name:'Sherpa XT Lite',      bom:1123671,  list:1800000, raas:85000,  hsn:'84287000'},
+    {name:'Sherpa 10K',          bom:1490000,  list:2600000, raas:90000,  hsn:'84287000'},
+    {name:'Sherpa Pallet Mover', bom:1017006,  list:2000000, raas:80000,  hsn:'84287000'},
+    {name:'Sherpa Tug V3.5',     bom:898937,   list:1800000, raas:80000,  hsn:'84287000'},
+    {name:'Sherpa Tug V3',       bom:898937,   list:1600000, raas:80000,  hsn:'84287000'},
+    {name:'Sherpa Flexfork',     bom:1123762,  list:2500000, raas:80000,  hsn:'84287000'},
+    {name:'Sherpa Flextug',      bom:1123762,  list:2200000, raas:80000,  hsn:'84287000'},
+    {name:'Sherpa Lifter',       bom:1308341,  list:2500000, raas:75000,  hsn:'84287000'},
+    {name:'Sherpa Lite',         bom:1123671,  list:1500000, raas:80000,  hsn:'84287000'},
+    {name:'Sherpa Lite RollerTop',bom:1123671, list:1700000, raas:80000,  hsn:'84287000'},
+    {name:'Lifter 500',          bom:989777,   list:1600000, raas:90000,  hsn:'84287000'},
+    {name:'Sherpa Edu Bot',      bom:439524,   list:900000,  raas:0,      hsn:'84287000'},
+  ],
+  accessories: [
+    {name:'Additional Battery',          bom:45000,  list:100000,  hsn:'85065000'},
+    {name:'Sherpa Controlling Tablet',   bom:12000,  list:20000,   hsn:'84717010', warn:true},
+    {name:'Summon Button',               bom:5000,   list:15000,   hsn:'85171110'},
+    {name:'Auto UnHitch**',              bom:5000,   list:50000,   hsn:'87089900'},
+    {name:'Ati Eye',                     bom:0,      list:500000,  hsn:'84287000'},
+    {name:'Trolley',                     bom:0,      list:55000,   hsn:'84287000'},
+    {name:'Wagon Cart',                  bom:0,      list:110000,  hsn:'84287000'},
+    {name:'Cargo Liner Cart',            bom:0,      list:160000,  hsn:'84287000'},
+    {name:'Smart Conveyor',              bom:0,      list:300000,  hsn:'84287000'},
+    {name:'Idle Conveyor',               bom:0,      list:50000,   hsn:'84287000'},
+    {name:'HOPT',                        bom:0,      list:25000,   hsn:'84287000'},
+    {name:'24*7 Swapping Add-On Battery',bom:45000,  list:100000,  hsn:'85065000'},
+    {name:'Auto Docking Battery Charger',bom:0,      list:150000,  hsn:'84287000'},
+  ],
+  services: [
+    {name:'Implementation Cost',         list:250000, hsn:'998732'},
+    {name:'Operator Training',           list:100000, hsn:'998311'},
+    {name:'AMC',                         list:300000, hsn:'998311'},
+    {name:'Service & Support',           list:150000, hsn:'998311'},
+    {name:'WIFI Implementation Cost',    list:1000000,hsn:'998732'},
+    {name:'Engineers Cost',              list:30000,  hsn:'998311'},
+  ],
+  software: [
+    {name:'Fleet Manager Software',              list:300000,   hsn:'85238020'},
+    {name:'Fleet Manager Physical Hardware',     list:150000,   hsn:'85238020'},
+    {name:'Fleet Mgmt Hardware (AWS/month)',     list:120000,   hsn:'85238020'},
+    {name:'MES/Other Software Integration',      list:500000,   hsn:'84287000'},
+    {name:'SAP Integration',                     list:50000,    hsn:'84287000'},
+    {name:'Scissor Lift Integration',            list:500000,   hsn:'84287000'},
+    {name:'IES Expansion',                       list:500000,   hsn:'84287000'},
+    {name:'TMT Software',                        list:65000000, hsn:'84287000'},
+    {name:'Multi Brand FM - VDA 50-50',          list:700000,   hsn:'84287000'},
+  ],
+  // India clusters — from Lookup tab (exact discrete values)
+  clusters: {
+    'Bangalore':          {flight:0,     ground:2000, hotel:0,    perdiem:0,   cs:2000,  warr:2000},
+    'Hosur':              {flight:0,     ground:1000, hotel:1500, perdiem:0,   cs:2500,  warr:2500},
+    'Chennai':            {flight:0,     ground:2000, hotel:3000, perdiem:0,   cs:5000,  warr:5000},
+    'Pune - Maharashtra': {flight:15000, ground:2500, hotel:3000, perdiem:650, cs:16500, warr:21150},
+    'NCR':                {flight:15000, ground:2500, hotel:3000, perdiem:650, cs:16500, warr:21150},
+    'Gujarat':            {flight:0,     ground:3000, hotel:2000, perdiem:650, cs:6000,  warr:5650},
+    'Dahej':              {flight:0,     ground:1000, hotel:1500, perdiem:650, cs:3500,  warr:3150},
+    'Nagpur':             {flight:0,     ground:1000, hotel:1500, perdiem:650, cs:3500,  warr:3150},
+    'Others':             {flight:15000, ground:2500, hotel:2000, perdiem:650, cs:15500, warr:20150},
+  },
+  // Implementation days lookup: [bots_threshold, integration] → days
+  implDays: [
+    {bots:4,   int:'N', days:14},
+    {bots:4,   int:'Y', days:21},
+    {bots:8,   int:'N', days:21},
+    {bots:8,   int:'Y', days:30},
+    {bots:999, int:'N', days:30},
+    {bots:999, int:'Y', days:45},
+  ],
+  // Constants
+  ENG_RATE:     1667,   // ₹/day
+  SPARES:       83520,  // ₹/bot/year
+  ROC:          18000,  // ₹/bot/year
+  VISITS:       8,      // visits/year (4 planned + 4 FOC)
+  AMC_MARGIN:   0.25,   // 25% target margin for suggested AMC price
+};
+
+// ══════════════════════════════════════════════════════
+// LOAD FROM GOOGLE SHEETS
+// ══════════════════════════════════════════════════════
+function parsePricebook(rows) {
+  // cols: 0=Concat,1=Region,2=Charge,3=Type,4=ProductName,5=PricebookName,9=Currency,10=ListPrice
+  const indiaOutright = rows.filter(r =>
+    r[1]==='India' && r[5]==='Outright INR Price Book' && r[9]==='INR'
+  );
+  const indiaRaas = rows.filter(r =>
+    r[1]==='India' && r[5]==='RaaS INR Price Book' && r[9]==='INR' && r[2]==='Recurring'
+  );
+
+  // Build lookup maps
+  const outrightMap = {};
+  indiaOutright.forEach(r => { outrightMap[r[4]] = parseFloat(r[10])||0; });
+  const raasMap = {};
+  indiaRaas.forEach(r => { raasMap[r[4]] = parseFloat(r[10])||0; });
+
+  // Update SKU list prices from Pricebook
+  MASTER.skus.forEach(sku => {
+    if (outrightMap[sku.name]) sku.list  = outrightMap[sku.name];
+    if (raasMap[sku.name])     sku.raas  = raasMap[sku.name];
+  });
+
+  // Update accessory list prices
+  MASTER.accessories.forEach(acc => {
+    if (outrightMap[acc.name]) acc.list = outrightMap[acc.name];
+  });
+
+  // Update service/software list prices
+  [...MASTER.services, ...MASTER.software].forEach(item => {
+    if (outrightMap[item.name]) item.list = outrightMap[item.name];
+  });
+}
+
+function parseLookup(rows) {
+  // BOM costs: col A=SKU, col B=BOM_USD, col C=BOM_INR
+  // Cluster T&E: col G=Cluster, col H=Region, col I=Flight, col J=Ground, col K=Hotel, col L=PerDiem
+  //              col N=FlightCost, col O=Ground, col P=Hotel, col Q=PerDiem, col R=Total, col S=CSCost, col T=WarrantyCost
+  // Impl days: col A=Bots, col B=Integration, col D=Days (rows 47-52)
+
+  rows.forEach((row, i) => {
+    // BOM costs (rows 6-16, col A has SKU name)
+    if (row[0] && row[2] && i >= 5 && i <= 16) {
+      const bomInr = parseFloat(row[2]);
+      if (!isNaN(bomInr) && bomInr > 0) {
+        const skuName = row[0].toString().trim();
+        // Match to MASTER.skus by name similarity
+        const sku = MASTER.skus.find(s =>
+          s.name.toLowerCase() === skuName.toLowerCase() ||
+          s.name.toLowerCase().includes(skuName.toLowerCase().split(' ').slice(0,2).join(' '))
+        );
+        if (sku) sku.bom = bomInr;
+      }
+    }
+
+    // Cluster T&E (rows 5-13: Bangalore through Others)
+    if (row[6] && row[7] === 'India' && i >= 4 && i <= 13) {
+      const clusterName = row[6].toString().trim();
+      if (MASTER.clusters[clusterName]) {
+        MASTER.clusters[clusterName].flight  = parseFloat(row[8])||0;
+        MASTER.clusters[clusterName].ground  = parseFloat(row[9])||0;
+        MASTER.clusters[clusterName].hotel   = parseFloat(row[10])||0;
+        MASTER.clusters[clusterName].perdiem = parseFloat(row[11])||0;
+        MASTER.clusters[clusterName].cs      = parseFloat(row[18])||0;
+        MASTER.clusters[clusterName].warr    = parseFloat(row[19])||0;
+      }
+    }
+
+    // Impl days (rows 47-52, i=46-51)
+    if (i >= 46 && i <= 51 && row[0] && row[1] && row[3]) {
+      const bots = parseInt(row[0]);
+      const intg = row[1].toString().trim();
+      const days = parseInt(row[3]);
+      if (!isNaN(bots) && !isNaN(days)) {
+        const existing = MASTER.implDays.find(d => d.bots===bots && d.int===intg);
+        if (existing) existing.days = days;
+      }
+    }
+  });
+}
+
+function retrySheets() {
+  backgroundFetch();
+}
+
+function setStatus(state, txt) {
+  const dot = document.getElementById('statusDot');
+  const t   = document.getElementById('statusTxt');
+  const rb  = document.getElementById('retryBtn');
+  dot.className = 'status-dot ' + state;
+  t.textContent = txt;
+  if(rb) rb.style.display = state === 'err' ? 'inline-flex' : 'none';
+}
+
+// ══════════════════════════════════════════════════════
+// ROW COUNTERS
+// ══════════════════════════════════════════════════════
+let rC=0,aC=0,iC=0,sC=0,mC=0;
+
+// ══════════════════════════════════════════════════════
+// INIT UI
+// ══════════════════════════════════════════════════════
+function initUI() {
+  // Set date and ref
+  const d = new Date();
+  const ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('refDate').textContent = `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`;
+  const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0');
+  document.getElementById('refNum').textContent = `AMIDC/00001/${dd}/${mm}/${d.getFullYear()}`;
+
+  // Seed rows
+  addRobotRow();
+  addImplRow();
+  updateAll();
+}
+
+// ══════════════════════════════════════════════════════
+// OPTION BUILDERS
+// ══════════════════════════════════════════════════════
+function skuOpts()  { return MASTER.skus.map(s=>`<option value="${s.name}">${s.name}</option>`).join(''); }
+function accOpts()  { return MASTER.accessories.map(a=>`<option value="${a.name}">${a.name}</option>`).join(''); }
+function implOpts() { return MASTER.services.map(i=>`<option value="${i.name}">${i.name}</option>`).join(''); }
+function swOpts()   { return MASTER.software.map(s=>`<option value="${s.name}">${s.name}</option>`).join(''); }
+
+// ══════════════════════════════════════════════════════
+// ROW ADDERS
+// ══════════════════════════════════════════════════════
+function addRobotRow() {
+  const id=rC++, tb=document.getElementById('robotRows'), tr=document.createElement('tr');
+  tr.id=`r-${id}`;
+  const isRaas = document.getElementById('dealType').value==='raas';
+  tr.innerHTML=`
+    <td><input class="ci" type="text" id="rd-${id}" placeholder="Config / notes"></td>
+    <td><select class="ci" id="rs-${id}" onchange="onSKU(${id})" style="width:150px">
+      <option value="">— SKU —</option>${skuOpts()}</select></td>
+    <td><input class="ci" type="number" id="rq-${id}" value="1" min="1" style="width:40px" oninput="updateAll()"></td>
+    <td><input class="ci" type="number" id="rp-${id}" placeholder="0" oninput="updateAll()"></td>
+    <td class="td-disc" id="rdisc-${id}" style="font-family:var(--mono);font-size:9px;color:var(--g5)">—</td>
+    <td class="td-r" id="rt-${id}">₹0</td>
+    <td class="td-hsn"><input class="ci" type="text" id="rh-${id}" value="84287000" style="width:72px"></td>
+    <td class="td-gst">18%</td>
+    <td class="td-del"><button class="btn-del" onclick="del('r-${id}')">×</button></td>`;
+  tb.appendChild(tr); updateAll();
+}
+
+function onSKU(id) {
+  const v=document.getElementById(`rs-${id}`).value;
+  const s=MASTER.skus.find(x=>x.name===v);
+  if(!s) return;
+  const isRaas=document.getElementById('dealType').value==='raas';
+  document.getElementById(`rp-${id}`).value = isRaas ? s.raas : s.list;
+  document.getElementById(`rh-${id}`).value = s.hsn;
+  updateAll();
+}
+
+function addAccRow() {
+  const id=aC++, tb=document.getElementById('accRows'), tr=document.createElement('tr');
+  tr.id=`a-${id}`;
+  tr.innerHTML=`
+    <td><select class="ci" id="ad-${id}" onchange="onAcc(${id})">
+      <option value="">— select —</option>${accOpts()}<option value="custom">Custom…</option></select></td>
+    <td><input class="ci" type="number" id="aq-${id}" value="1" min="0" style="width:40px" oninput="updateAll()"></td>
+    <td><input class="ci" type="number" id="ap-${id}" placeholder="0" oninput="updateAll()"></td>
+    <td class="td-disc" id="adisc-${id}" style="font-family:var(--mono);font-size:9px;color:var(--g5)">—</td>
+    <td class="td-r" id="at-${id}">₹0</td>
+    <td class="td-hsn"><input class="ci" type="text" id="ah-${id}" value="" style="width:72px"></td>
+    <td class="td-gst">18%</td>
+    <td class="sub-col" style="text-align:center;display:none"><span class="sub-toggle">
+      <button class="sub-btn active-ot" id="asub-${id}" onclick="setSubMode('a',${id},'ot')" title="One-time">OT</button>
+      <button class="sub-btn" id="assub-${id}" onclick="setSubMode('a',${id},'sub')" title="Subscription × months">SUB</button>
+    </span></td>
+    <td style="text-align:center"><input type="checkbox" id="af-${id}" onchange="updateAll()" title="FOC?"></td>
+    <td class="td-del"><button class="btn-del" onclick="del('a-${id}')">×</button></td>`;
+  tb.appendChild(tr); updateAll();
+}
+
+function onAcc(id) {
+  const v=document.getElementById(`ad-${id}`).value;
+  const a=MASTER.accessories.find(x=>x.name===v);
+  if(a){ document.getElementById(`ap-${id}`).value=a.list; document.getElementById(`ah-${id}`).value=a.hsn; updateAll(); }
+}
+
+function addImplRow() {
+  const id=iC++, tb=document.getElementById('implRows'), tr=document.createElement('tr');
+  tr.id=`i-${id}`;
+  tr.innerHTML=`
+    <td><select class="ci" id="id2-${id}" onchange="onImpl(${id})">
+      <option value="">— select —</option>${implOpts()}<option value="custom">Custom…</option></select></td>
+    <td><input class="ci" type="number" id="iq-${id}" value="1" min="0" style="width:40px" oninput="updateAll()"></td>
+    <td><input class="ci" type="number" id="ip-${id}" placeholder="0" oninput="updateAll()"></td>
+    <td class="td-r" id="itl-${id}">₹0</td>
+    <td class="td-hsn"><input class="ci" type="text" id="ih-${id}" value="998732" style="width:72px"></td>
+    <td class="td-gst">18%</td>
+    <td class="sub-col" style="text-align:center;display:none"><span class="sub-toggle">
+      <button class="sub-btn active-ot" id="isub-${id}" onclick="setSubMode('i',${id},'ot')" title="One-time">OT</button>
+      <button class="sub-btn" id="issub-${id}" onclick="setSubMode('i',${id},'sub')" title="Subscription × months">SUB</button>
+    </span></td>
+    <td class="td-del"><button class="btn-del" onclick="del('i-${id}')">×</button></td>`;
+  tb.appendChild(tr); updateAll();
+}
+
+function onImpl(id) {
+  const v=document.getElementById(`id2-${id}`).value;
+  const item=MASTER.services.find(x=>x.name===v);
+  if(item){ document.getElementById(`ip-${id}`).value=item.list; document.getElementById(`ih-${id}`).value=item.hsn; updateAll(); }
+}
+
+function addSwRow() {
+  const id=sC++, tb=document.getElementById('swRows'), tr=document.createElement('tr');
+  tr.id=`s-${id}`;
+  tr.innerHTML=`
+    <td><select class="ci" id="sd-${id}" onchange="onSw(${id})">
+      <option value="">— select —</option>${swOpts()}<option value="custom">Custom…</option></select></td>
+    <td><input class="ci" type="number" id="sq-${id}" value="1" min="0" style="width:40px" oninput="updateAll()"></td>
+    <td><input class="ci" type="number" id="sp-${id}" placeholder="0" oninput="updateAll()"></td>
+    <td class="td-r" id="stl-${id}">₹0</td>
+    <td class="td-hsn"><input class="ci" type="text" id="sh-${id}" value="85238020" style="width:72px"></td>
+    <td class="td-gst">18%</td>
+    <td class="sub-col" style="text-align:center;display:none"><span class="sub-toggle">
+      <button class="sub-btn active-ot" id="ssub-${id}" onclick="setSubMode('s',${id},'ot')" title="One-time">OT</button>
+      <button class="sub-btn" id="sssub-${id}" onclick="setSubMode('s',${id},'sub')" title="Subscription × months">SUB</button>
+    </span></td>
+    <td class="td-del"><button class="btn-del" onclick="del('s-${id}')">×</button></td>`;
+  tb.appendChild(tr); updateAll();
+}
+
+function onSw(id) {
+  const v=document.getElementById(`sd-${id}`).value;
+  const item=MASTER.software.find(x=>x.name===v);
+  if(item){ document.getElementById(`sp-${id}`).value=item.list; document.getElementById(`sh-${id}`).value=item.hsn; updateAll(); }
+}
+
+function addAmcRow() {
+  const id=mC++, tb=document.getElementById('amcRows'), tr=document.createElement('tr');
+  tr.id=`m-${id}`;
+  tr.innerHTML=`
+    <td><input class="ci" type="text" id="md-${id}" placeholder="e.g. AMC Year 2 — Sherpa XT × 2" oninput="updateAll()"></td>
+    <td><input class="ci" type="number" id="mq-${id}" value="1" min="0" style="width:40px" oninput="updateAll()"></td>
+    <td><input class="ci" type="number" id="mp-${id}" placeholder="0" oninput="updateAll()"></td>
+    <td class="td-r" id="mtl-${id}">₹0</td>
+    <td class="td-hsn"><input class="ci" type="text" id="mh-${id}" value="998311" style="width:72px"></td>
+    <td class="td-gst">18%</td>
+    <td class="sub-col" style="text-align:center;display:none"><span class="sub-toggle">
+      <button class="sub-btn active-ot" id="msub-${id}" onclick="setSubMode('m',${id},'ot')" title="One-time">OT</button>
+      <button class="sub-btn" id="mssub-${id}" onclick="setSubMode('m',${id},'sub')" title="Subscription × months">SUB</button>
+    </span></td>
+    <td class="td-del"><button class="btn-del" onclick="del('m-${id}')">×</button></td>`;
+  tb.appendChild(tr); updateAll();
+}
+
+function del(id){ const el=document.getElementById(id); if(el)el.remove(); updateAll(); }
+
+// ══════════════════════════════════════════════════════
+// SUB/OT TOGGLE
+// ══════════════════════════════════════════════════════
+// pfx = 'a','i','s','m' | id = row counter | mode = 'sub'|'ot'
+function setSubMode(pfx, id, mode) {
+  const otBtn  = document.getElementById(`${pfx}sub-${id}`);
+  const subBtn = document.getElementById(`${pfx}ssub-${id}`);
+  if(!otBtn||!subBtn) return;
+  if(mode==='sub'){
+    otBtn.classList.remove('active-ot');
+    subBtn.classList.add('active-sub');
+  } else {
+    subBtn.classList.remove('active-sub');
+    otBtn.classList.add('active-ot');
+  }
+  updateAll();
+}
+
+function isSubRow(pfx, rid) {
+  const subBtn = document.getElementById(`${pfx}ssub-${rid}`);
+  return subBtn ? subBtn.classList.contains('active-sub') : false;
+}
+
+// ══════════════════════════════════════════════════════
+// SECTION TOTALS
+// ══════════════════════════════════════════════════════
+// subPfx: prefix char for sub-mode check ('a','i','s','m') or null
+function secTotal(tbId, qPfx, pPfx, tPfx, focPfx=null, discPfx=null, listFn=null, isRobot=false, subPfx=null) {
+  let tot=0;
+  const isRaas=document.getElementById('dealType').value==='raas';
+  const months=isRaas?( parseFloat(document.getElementById('contractMonths').value)||12 ):1;
+  document.getElementById(tbId).querySelectorAll('tr').forEach(tr=>{
+    const rid=tr.id.split('-')[1];
+    const q=parseFloat(document.getElementById(`${qPfx}${rid}`)?.value)||0;
+    const p=parseFloat(document.getElementById(`${pPfx}${rid}`)?.value)||0;
+    const foc=focPfx?(document.getElementById(`${focPfx}${rid}`)?.checked||false):false;
+    // Robots: always MRC × months in RaaS
+    // Other rows: multiply by months only if sub toggle is active and in RaaS
+    const rowIsSub = isRobot ? isRaas : (isRaas && subPfx && isSubRow(subPfx, rid));
+    const mult = rowIsSub ? months : 1;
+    const line=foc?0:q*p*mult; tot+=line;
+    const tel=document.getElementById(`${tPfx}${rid}`);
+    if(tel) tel.textContent = foc?'FOC':fmt(line);
+
+    // Discount badge
+    if(discPfx && listFn) {
+      const discEl=document.getElementById(`${discPfx}${rid}`);
+      if(discEl && !foc && p>0) {
+        const listPrice=listFn(rid);
+        if(listPrice>0) {
+          const pct=((listPrice-p)/listPrice*100);
+          if(pct>0) {
+            discEl.textContent=`-${pct.toFixed(0)}%`;
+            discEl.style.color=pct>20?'var(--red)':'var(--g5)';
+          } else if(pct<0) {
+            discEl.textContent=`+${Math.abs(pct).toFixed(0)}%`;
+            discEl.style.color='var(--green)';
+          } else {
+            discEl.textContent='list';
+            discEl.style.color='var(--g5)';
+          }
+        }
+      }
+    }
+  });
+  return tot;
+}
+
+function getRobotListPrice(rid) {
+  const sku=document.getElementById(`rs-${rid}`)?.value;
+  const isRaas=document.getElementById('dealType').value==='raas';
+  const s=MASTER.skus.find(x=>x.name===sku);
+  return s?(isRaas?s.raas:s.list):0;
+}
+
+function getAccListPrice(rid) {
+  const name=document.getElementById(`ad-${rid}`)?.value;
+  const a=MASTER.accessories.find(x=>x.name===name);
+  return a?a.list:0;
+}
+
+// ══════════════════════════════════════════════════════
+// IMPL DAYS AUTO-CALC
+// ══════════════════════════════════════════════════════
+function getImplDays(totalBots) {
+  const intg=document.getElementById('integration').value;
+  const cplx=parseFloat(document.getElementById('complexity').value)||1.0;
+  // Discrete lookup: find first threshold >= totalBots
+  const row=MASTER.implDays.find(d=>d.bots>=totalBots && d.int===intg)
+         || MASTER.implDays.filter(d=>d.int===intg).slice(-1)[0];
+  const base=row?row.days:14;
+  return {base, eff:Math.round(base*cplx*10)/10};
+}
+
+// Avg days/visit: LOOKUP(bots, {1,4,10,999}, {1,2,3,3}) — discrete
+function avgVisitDays(bots) {
+  if(bots>=10) return 3;
+  if(bots>=4)  return 2;
+  return 1;
+}
+
+// ══════════════════════════════════════════════════════
+// COGS ENGINE — exact from Pricebook / Lookup
+// ══════════════════════════════════════════════════════
+function computeCOGS(totalBots) {
+  const cluster   = document.getElementById('cluster').value;
+  const engineers = parseFloat(document.getElementById('engineers').value)||1;
+  const amcYears  = parseInt(document.getElementById('amcYears').value)||0;
+  const cl        = MASTER.clusters[cluster] || MASTER.clusters['Others'];
+  const {eff:D}   = getImplDays(totalBots);
+
+  // ── Hardware COGS ──────────────────────────────────
+  let hwCOGS=0, focCOGS=0, tabletCount=0, belowListFlags=[];
+
+  document.getElementById('robotRows').querySelectorAll('tr').forEach(tr=>{
+    const rid=tr.id.split('-')[1];
+    const sku=document.getElementById(`rs-${rid}`)?.value;
+    const qty=parseFloat(document.getElementById(`rq-${rid}`)?.value)||0;
+    const price=parseFloat(document.getElementById(`rp-${rid}`)?.value)||0;
+    const skuD=MASTER.skus.find(s=>s.name===sku);
+    if(!skuD||qty===0) return;
+    hwCOGS+=skuD.bom*qty;
+    const isRaas=document.getElementById('dealType').value==='raas';
+    const lp=isRaas?skuD.raas:skuD.list;
+    if(price>0&&lp>0){
+      const disc=(lp-price)/lp*100;
+      if(disc>20) belowListFlags.push(`${sku}: ${disc.toFixed(0)}% below list`);
+    }
+  });
+
+  document.getElementById('accRows').querySelectorAll('tr').forEach(tr=>{
+    const rid=tr.id.split('-')[1];
+    const name=document.getElementById(`ad-${rid}`)?.value;
+    const qty=parseFloat(document.getElementById(`aq-${rid}`)?.value)||0;
+    const isFoc=document.getElementById(`af-${rid}`)?.checked||false;
+    const accD=MASTER.accessories.find(a=>a.name===name);
+    if(!accD||qty===0) return;
+    if(isFoc){ focCOGS+=accD.list*qty; }
+    else { hwCOGS+=accD.bom*qty; }
+    if(accD.warn&&!isFoc) tabletCount+=qty;
+  });
+
+  // ── Implementation COGS ───────────────────────────
+  // T&E: flight (once per project) + (ground+hotel+perdiem)×D per engineer
+  const taePerEng = cl.flight + (cl.ground + cl.hotel + cl.perdiem) * D;
+  const labour    = engineers * D * MASTER.ENG_RATE;
+  const implCOGS  = labour + (taePerEng * engineers) + cl.cs;
+
+  // ── Warranty COGS (always 12m) ────────────────────
+  const avgDays   = avgVisitDays(totalBots);
+  // Cost per visit = warranty cost from cluster × avg days
+  const costPerVisit = cl.warr * avgDays;
+  const warrCOGS  = (MASTER.VISITS * costPerVisit)
+                  + (MASTER.SPARES * totalBots)
+                  + (MASTER.ROC    * totalBots);
+
+  // ── AMC COGS beyond warranty ──────────────────────
+  const amcCOGS = amcYears>0&&totalBots>0 ? warrCOGS*amcYears : 0;
+
+  // ── Suggested AMC price ───────────────────────────
+  const amcSuggestedTotal = totalBots>0
+    ? (warrCOGS / (1-MASTER.AMC_MARGIN)) * Math.max(amcYears,1)
+    : 0;
+  const amcSuggestedPerBot = totalBots>0 ? amcSuggestedTotal/(Math.max(amcYears,1)*totalBots) : 0;
+
+  return {hwCOGS, implCOGS, warrCOGS, amcCOGS, focCOGS,
+          tabletCount, belowListFlags, amcSuggestedTotal, amcSuggestedPerBot};
+}
+
+// ══════════════════════════════════════════════════════
+// MAIN UPDATE LOOP
+// ══════════════════════════════════════════════════════
+function updateAll() {
+  // RaaS field visibility + column header update
+  const isRaas = document.getElementById('dealType').value==='raas';
+  document.getElementById('raasMonthsField').style.display = isRaas?'block':'none';
+
+  // RaaS mode class on layout — controls sub-col visibility via CSS
+  const layout = document.getElementById('mainLayout');
+  if(isRaas) layout.classList.add('raas-mode');
+  else       layout.classList.remove('raas-mode');
+
+  // Show/hide sub-col header cells manually (CSS handles td cells)
+  document.querySelectorAll('.sub-col-hd').forEach(th=>{
+    th.style.display = isRaas ? 'table-cell' : 'none';
+  });
+  // Show/hide sub-col td cells in all existing rows
+  document.querySelectorAll('.sub-col').forEach(td=>{
+    td.style.display = isRaas ? 'table-cell' : 'none';
+  });
+
+  // Gray out AMC Years when RaaS — not applicable (contract covers service)
+  const amcField = document.getElementById('amcYearsField');
+  const amcSel   = document.getElementById('amcYears');
+  if(isRaas){
+    amcField.classList.add('field-disabled');
+    amcSel.value = '0';
+    amcSel.disabled = true;
+  } else {
+    amcField.classList.remove('field-disabled');
+    amcSel.disabled = false;
+  }
+  // Update robot section column headers for deal type
+  document.getElementById('robotPriceHeader').textContent  = isRaas ? 'MRC/month (₹)' : 'Unit Price (₹)';
+  document.getElementById('robotTotalHeader').textContent  = isRaas ? 'LTV (₹)' : 'Line Total';
+  // Update all existing robot row prices when deal type switches
+  document.getElementById('robotRows').querySelectorAll('tr').forEach(tr=>{
+    const rid=tr.id.split('-')[1];
+    const sku=document.getElementById(`rs-${rid}`)?.value;
+    const skuD=MASTER.skus.find(s=>s.name===sku);
+    if(skuD){
+      const currentPrice=parseFloat(document.getElementById(`rp-${rid}`)?.value)||0;
+      // Only auto-update if price matches the OTHER deal type's standard price (avoid overwriting custom prices)
+      const wasOutright = currentPrice===skuD.list;
+      const wasRaas     = currentPrice===skuD.raas;
+      if(isRaas && wasOutright) document.getElementById(`rp-${rid}`).value=skuD.raas;
+      if(!isRaas && wasRaas)   document.getElementById(`rp-${rid}`).value=skuD.list;
+    }
+  });
+
+  document.getElementById('raasNote').style.display = isRaas ? 'block' : 'none';
+  if(isRaas){
+    const months = parseFloat(document.getElementById('contractMonths').value)||12;
+    document.getElementById('raasNoteMonths').textContent = months;
+  }
+
+  // Count total bots
+  let totalBots=0;
+  document.getElementById('robotRows').querySelectorAll('tr').forEach(tr=>{
+    const rid=tr.id.split('-')[1];
+    totalBots+=parseFloat(document.getElementById(`rq-${rid}`)?.value)||0;
+  });
+  totalBots=Math.round(totalBots);
+
+  // Impl days + bot count display
+  const {base,eff} = getImplDays(totalBots);
+  document.getElementById('calcBots').textContent    = totalBots>0?`${totalBots}`:'—';
+  document.getElementById('calcDays').textContent    = totalBots>0?`${base}d`:'—';
+  document.getElementById('calcEffDays').textContent = totalBots>0?`${eff}d`:'—';
+
+  // Section totals (last arg = sub-mode prefix for non-robot rows)
+  const rRev=secTotal('robotRows','rq-','rp-','rt-',null,'rdisc-',getRobotListPrice,true,null);
+  const aRev=secTotal('accRows','aq-','ap-','at-','af-','adisc-',getAccListPrice,false,'a');
+  const iRev=secTotal('implRows','iq-','ip-','itl-',null,null,null,false,'i');
+  const sRev=secTotal('swRows','sq-','sp-','stl-',null,null,null,false,'s');
+  const mRev=secTotal('amcRows','mq-','mp-','mtl-',null,null,null,false,'m');
+  const pf  =parseFloat(document.getElementById('pandF').value)||0;
+
+  document.getElementById('robotSub').textContent=fmt(rRev);
+  document.getElementById('accSub').textContent=fmt(aRev);
+  document.getElementById('implSub').textContent=fmt(iRev);
+  document.getElementById('swSub').textContent=fmt(sRev);
+  document.getElementById('amcSub').textContent=fmt(mRev);
+  document.getElementById('pfTotal').textContent=fmt(pf);
+
+  const exGST=rRev+aRev+iRev+sRev+mRev+pf;
+  document.getElementById('gtEx').textContent=fmt(exGST);
+  document.getElementById('gtGst').textContent=fmt(exGST*0.18);
+  document.getElementById('gtInc').textContent=fmt(exGST*1.18);
+
+  // Tablet warning
+  let showTablet=false;
+  document.getElementById('accRows').querySelectorAll('tr').forEach(tr=>{
+    const rid=tr.id.split('-')[1];
+    if(document.getElementById(`ad-${rid}`)?.value==='Sherpa Controlling Tablet'
+       &&!document.getElementById(`af-${rid}`)?.checked) showTablet=true;
+  });
+  document.getElementById('tabletWarn').style.display=showTablet?'block':'none';
+
+  if(exGST===0){ renderCMEmpty(); return; }
+
+  const C=computeCOGS(totalBots);
+  const totalCOGS=C.hwCOGS+C.implCOGS+C.warrCOGS+C.amcCOGS+C.focCOGS;
+  const cm=(exGST-totalCOGS)/exGST*100;
+
+  // Waterfall
+  // Waterfall labels
+  document.getElementById('wRev').previousElementSibling.textContent =
+    isRaas ? `Revenue (LTV + one-time)` : `Revenue (ex-GST)`;
+  document.getElementById('wRev').textContent=fmt(exGST);
+  document.getElementById('wHw').textContent=`−${fmt(C.hwCOGS)}`;
+  document.getElementById('wImpl').textContent=`−${fmt(C.implCOGS)}`;
+  document.getElementById('wWarr').textContent=`−${fmt(C.warrCOGS)}`;
+  document.getElementById('wAmc').textContent=C.amcCOGS>0?`−${fmt(C.amcCOGS)}`:'—';
+  document.getElementById('wFoc').textContent=C.focCOGS>0?`−${fmt(C.focCOGS)}`:'—';
+  document.getElementById('wCm').textContent=`${fmt(exGST-totalCOGS)} (${cm.toFixed(1)}%)`;
+
+  // AMC reference
+  if(totalBots>0){
+    document.getElementById('amcRefBox').style.display='block';
+    document.getElementById('amcRefTotal').textContent=`${fmt(C.amcSuggestedTotal)}/yr`;
+    document.getElementById('amcRefSub').textContent=`${fmt(C.amcSuggestedPerBot)}/bot/yr · 25% margin · add to Section E`;
+  } else {
+    document.getElementById('amcRefBox').style.display='none';
+  }
+
+  // CM verdict — India: binary (no review band for CapEx; RaaS has review band)
+  // isRaas already declared at top of updateAll()
+  // Thresholds: CapEx >35% approved, RaaS >50% approved, 40-50% RaaS = review
+  const thr       = isRaas ? 50  : 35;
+  const reviewThr = isRaas ? 40  : null;  // review band only for RaaS
+
+  document.getElementById('thrHint').innerHTML=`Threshold: <span>${isRaas?'RaaS >50%':'CapEx >35%'}</span>`;
+  document.getElementById('cmPct').textContent=cm.toFixed(1)+'%';
+  document.getElementById('cmFill').style.width=Math.max(0,Math.min(cm,100))+'%';
+
+  const pctEl =document.getElementById('cmPct');
+  const fill  =document.getElementById('cmFill');
+  const cmEl  =document.getElementById('wCm');
+  const flags =[...C.belowListFlags];
+  if(C.tabletCount>0) flags.push(`Tablet ×${C.tabletCount}: ₹${(C.tabletCount*(20000-12000)).toLocaleString('en-IN')} net drag`);
+
+  const minTCV=totalCOGS/(1-thr/100);
+  const gap=minTCV-exGST;
+
+  // Reset traffic lights
+  ['tlRed','tlAmber','tlGreen'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove('on');
+  });
+
+  let verdict, verdictColor, tlOn;
+  if(cm>thr){
+    verdict='APPROVED'; verdictColor='var(--green)'; tlOn='tlGreen';
+    pctEl.style.color='var(--green)'; fill.style.background='var(--green)'; cmEl.style.color='var(--green)';
+    document.getElementById('tlSub').innerHTML=
+      `CM ${cm.toFixed(1)}% — above ${thr}% threshold`;
+  } else if(reviewThr && cm>reviewThr){
+    verdict='NEEDS REVIEW'; verdictColor='var(--orange)'; tlOn='tlAmber';
+    pctEl.style.color='var(--orange)'; fill.style.background='var(--orange)'; cmEl.style.color='var(--orange)';
+    flags.push(`Min TCV: ${fmt(minTCV)} · gap: ${fmt(gap)}`);
+    document.getElementById('tlSub').innerHTML=
+      `CM ${cm.toFixed(1)}% — send to Bibin before committing<br><span class="gap">Gap to viable: ${fmt(gap)}</span>`;
+  } else {
+    verdict='NOT VIABLE'; verdictColor='var(--red)'; tlOn='tlRed';
+    pctEl.style.color='var(--red)'; fill.style.background='var(--red)'; cmEl.style.color='var(--red)';
+    flags.push(`Min TCV: ${fmt(minTCV)} · gap: ${fmt(gap)}`);
+    document.getElementById('tlSub').innerHTML=
+      `CM ${cm.toFixed(1)}% — reprice before submitting<br><span class="gap">Gap to viable: ${fmt(gap)}</span>`;
+  }
+
+  document.getElementById(tlOn).classList.add('on');
+  document.getElementById('tlVerdict').textContent=verdict;
+  document.getElementById('tlVerdict').style.color=verdictColor;
+  // Block border glow
+  const tlBlock=document.getElementById('tlBlock');
+  const borderMap={'tlGreen':'rgba(39,174,96,.4)','tlAmber':'rgba(230,126,34,.4)','tlRed':'rgba(192,57,43,.4)'};
+  tlBlock.style.borderColor=borderMap[tlOn];
+  tlBlock.style.boxShadow=`0 0 0 1px ${borderMap[tlOn]}`;
+  document.getElementById('wFlags').innerHTML=flags.map(f=>`<div class="flag">${f}</div>`).join('');
+}
+
+function renderCMEmpty(){
+  ['cmPct','wRev','wHw','wImpl','wWarr','wAmc','wFoc','wCm'].forEach(id=>{
+    document.getElementById(id).textContent='—';
+  });
+  document.getElementById('cmPct').style.color='var(--g4)';
+  document.getElementById('cmFill').style.width='0%';
+  document.getElementById('thrHint').textContent='';
+  document.getElementById('wFlags').innerHTML='';
+  document.getElementById('amcRefBox').style.display='none';
+  document.getElementById('calcBots').textContent='—';
+  document.getElementById('calcDays').textContent='—';
+  document.getElementById('calcEffDays').textContent='—';
+  // Reset traffic lights
+  ['tlRed','tlAmber','tlGreen'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('tlVerdict').textContent='—';
+  document.getElementById('tlVerdict').style.color='var(--g4)';
+  document.getElementById('tlSub').innerHTML='Enter deal details';
+  document.getElementById('tlBlock').style.borderColor='var(--g3)';
+  document.getElementById('tlBlock').style.boxShadow='none';
+}
+
+function updateRef(){ document.getElementById('refCust').textContent=document.getElementById('customerName').value||'—'; }
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+function fmt(n){ return '₹'+Math.round(Math.abs(n||0)).toLocaleString('en-IN'); }
+
+function clearAll(){
+  if(!confirm('Clear all line items?')) return;
+  ['robotRows','accRows','implRows','swRows','amcRows'].forEach(id=>{document.getElementById(id).innerHTML='';});
+  document.getElementById('pandF').value='';
+  document.getElementById('internalNotes').value='';
+  rC=aC=iC=sC=mC=0;
+  addRobotRow(); addImplRow(); updateAll();
+}
+
+function exportSummary(){
+  const cust=document.getElementById('customerName').value||'—';
+  let _expBots=0;
+  document.getElementById('robotRows').querySelectorAll('tr').forEach(tr=>{
+    const rid=tr.id.split('-')[1];
+    _expBots+=parseFloat(document.getElementById(`rq-${rid}`)?.value)||0;
+  });
+  _expBots=Math.round(_expBots);
+  const C=computeCOGS(_expBots);
+  const sections=[
+    {l:'A — ROBOTS',    tb:'robotRows', q:'rq-',p:'rp-',d:'rs-'},
+    {l:'B — ACC',       tb:'accRows',   q:'aq-',p:'ap-',d:'ad-',f:'af-'},
+    {l:'C — IMPL',      tb:'implRows',  q:'iq-',p:'ip-',d:'id2-'},
+    {l:'D — SOFTWARE',  tb:'swRows',    q:'sq-',p:'sp-',d:'sd-'},
+    {l:'E — AMC',       tb:'amcRows',   q:'mq-',p:'mp-',d:'md-'},
+  ];
+  let lines='';
+  sections.forEach(sec=>{
+    const rows=document.getElementById(sec.tb).querySelectorAll('tr');
+    if(!rows.length) return;
+    lines+=`\n${sec.l}\n${'─'.repeat(42)}\n`;
+    rows.forEach(tr=>{
+      const rid=tr.id.split('-')[1];
+      const desc=document.getElementById(`${sec.d}${rid}`)?.value||'';
+      const q=document.getElementById(`${sec.q}${rid}`)?.value||0;
+      const p=document.getElementById(`${sec.p}${rid}`)?.value||0;
+      const foc=sec.f?(document.getElementById(`${sec.f}${rid}`)?.checked?'[FOC]':''):'';
+      if(desc||p) lines+=`  ${desc||'—'} | Qty:${q} | Unit:₹${Number(p).toLocaleString('en-IN')} | Total:₹${(q*p).toLocaleString('en-IN')} ${foc}\n`;
+    });
+  });
+
+  const txt=`ATI MOTORS — INDIA DEAL SUMMARY (INTERNAL)\n${'═'.repeat(52)}
+Ref: ${document.getElementById('refNum').textContent}
+Customer: ${cust} | Contact: ${document.getElementById('contactPerson').value||'—'}
+Rep: ${document.getElementById('salesRep').value||'—'} (${document.getElementById('repTitle').value||'—'})
+Deal Type: ${document.getElementById('dealType').value} | Cluster: ${document.getElementById('cluster').value}
+Integration: ${document.getElementById('integration').value} | Complexity: ${document.getElementById('complexity').value}
+Engineers: ${document.getElementById('engineers').value} | Impl Days: ${document.getElementById('calcEffDays').textContent}
+AMC: ${document.getElementById('amcYears').value} yr
+${lines}
+P&F: ${document.getElementById('pfTotal').textContent}
+
+TOTALS
+  Ex-GST: ${document.getElementById('gtEx').textContent}
+  Inc-GST: ${document.getElementById('gtInc').textContent}
+
+COGS WATERFALL
+  Hardware: ${fmt(C.hwCOGS)} | Impl: ${fmt(C.implCOGS)} | Warranty: ${fmt(C.warrCOGS)} | AMC: ${fmt(C.amcCOGS)} | FOC: ${fmt(C.focCOGS)}
+
+CM: ${document.getElementById('cmPct').textContent} → ${document.getElementById('tlVerdict').textContent}
+
+NOTES:\n${document.getElementById('internalNotes').value||'—'}
+${'═'.repeat(52)}
+Generated: ${new Date().toLocaleString('en-IN')}`;
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  a.download=`Ati_India_Quote_${cust.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════
+// BOOT — init immediately, fetch Sheets in background
+// ══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  setStatus('err', 'Cached prices — click ↻ to load live');
+  initUI();
+  backgroundFetch();
+});
+
+async function backgroundFetch() {
+  const ft = (url) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t));
+  };
+  try {
+    const pbUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Pricebook!A:P?key=${API_KEY}`;
+    const lkUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Lookup!A:T?key=${API_KEY}`;
+    setStatus('loading', 'Fetching live prices…');
+    const [pbRes, lkRes] = await Promise.all([ft(pbUrl), ft(lkUrl)]);
+    if (!pbRes.ok || !lkRes.ok) throw new Error('API error');
+    const [pbData, lkData] = await Promise.all([pbRes.json(), lkRes.json()]);
+    parsePricebook(pbData.values || []);
+    parseLookup(lkData.values || []);
+    setStatus('ok', 'Live prices loaded ✓');
+    // Refresh all existing row dropdowns with updated prices
+    updateAll();
+  } catch(e) {
+    setStatus('err', 'Cached prices — click ↻ to load live');
+  }
+}
+</script>
+</body>
+</html>
