@@ -1,27 +1,18 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+export function middleware(req: NextRequest) {
+  const session =
+    req.cookies.get("authjs.session-token") ??
+    req.cookies.get("__Secure-authjs.session-token")
 
-  // Allow auth routes through
-  if (pathname.startsWith("/api/auth")) {
-    return NextResponse.next()
-  }
+  if (session) return NextResponse.next()
 
-  // Check for session cookie (next-auth sets this)
-  const sessionToken =
-    request.cookies.get("authjs.session-token") ||
-    request.cookies.get("__Secure-authjs.session-token")
-
-  if (!sessionToken) {
-    const signInUrl = new URL("/api/auth/signin", request.url)
-    return NextResponse.redirect(signInUrl)
-  }
-
-  return NextResponse.next()
+  const signIn = req.nextUrl.clone()
+  signIn.pathname = "/api/auth/signin"
+  return NextResponse.redirect(signIn)
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/tool.html"],
 }
